@@ -3,7 +3,7 @@
 import { useAppContext } from "@/utils/GlobalContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState, Suspense } from "react"; // Import Suspense
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { Auth, db } from "@/utils/firebase_config";
@@ -14,7 +14,6 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 const RegistrationForm = () => {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const { signup, user } = useAppContext();
   const [loading] = useAuthState(Auth);
@@ -36,40 +35,47 @@ const RegistrationForm = () => {
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
-    const refCode = searchParams.get("ref");
-    if (refCode) {
-      fetchReferrer(refCode);
-    }
-  }, [searchParams]);
+  // Moved useSearchParams to a separate Suspense component
+  const SearchParamsWrapper = () => {
+    const searchParams = useSearchParams();
 
-  const fetchReferrer = async (refCode) => {
-    try {
-      const referrerQuery = query(
-        collection(db, "users"),
-        where("referralLink", "==", refCode)
-      );
-      const referrerDocs = await getDocs(referrerQuery);
-
-      if (!referrerDocs.empty) {
-        const referrerDoc = referrerDocs.docs[0];
-        const referrerData = referrerDoc.data();
-
-        const referrerName = refCode.split("-")[0];
-        const randomString = Math.random().toString(36).substr(2, 10);
-        const sponsorId = `${referrerName}-${randomString}`;
-
-        setFormData((prevState) => ({
-          ...prevState,
-          sponsor_id: sponsorId,
-          referrerId: referrerDoc.id,
-          referrerName: referrerData.name,
-          referrerEmail: referrerData.email,
-        }));
+    useEffect(() => {
+      const refCode = searchParams.get("ref");
+      if (refCode) {
+        fetchReferrer(refCode);
       }
-    } catch (error) {
-      console.error("Error fetching referrer:", error);
-    }
+    }, [searchParams]);
+
+    const fetchReferrer = async (refCode) => {
+      try {
+        const referrerQuery = query(
+          collection(db, "users"),
+          where("referralLink", "==", refCode)
+        );
+        const referrerDocs = await getDocs(referrerQuery);
+
+        if (!referrerDocs.empty) {
+          const referrerDoc = referrerDocs.docs[0];
+          const referrerData = referrerDoc.data();
+
+          const referrerName = refCode.split("-")[0];
+          const randomString = Math.random().toString(36).substr(2, 10);
+          const sponsorId = `${referrerName}-${randomString}`;
+
+          setFormData((prevState) => ({
+            ...prevState,
+            sponsor_id: sponsorId,
+            referrerId: referrerDoc.id,
+            referrerName: referrerData.name,
+            referrerEmail: referrerData.email,
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching referrer:", error);
+      }
+    };
+
+    return null; // This component doesn't need to render anything
   };
 
   const handleChange = (e) => {
@@ -91,7 +97,6 @@ const RegistrationForm = () => {
     }
 
     try {
-      // Directly call signup for users
       const { userId } = await signup({
         sponsor_id: formData.sponsor_id,
         name: formData.name,
@@ -114,8 +119,7 @@ const RegistrationForm = () => {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      {" "}
-      {/* Add a fallback for Suspense */}
+      <SearchParamsWrapper />
       <section className="bg-gray-50">
         <div className="lg:grid lg:min-h-screen lg:grid-cols-12">
           <aside className="relative block h-16 lg:order-last lg:col-span-5 lg:h-full xl:col-span-6">
