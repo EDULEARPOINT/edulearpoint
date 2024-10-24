@@ -43,7 +43,7 @@ const LoginPage = () => {
     try {
       await login(userdata.email, userdata.password);
       // Remove the router.push here as it's now handled in the login function
-      // toast.success('Login Successful')
+      toast.success("Login Successfully");
     } catch (error) {
       toast.error("Login failed. Please check your credentials.");
       console.error(error.message);
